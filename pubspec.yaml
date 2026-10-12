@@ -1,0 +1,135 @@
+name: magent
+description: "A new Flutter project."
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+# The following defines the version and build number for your application.
+# A version number is three numbers separated by dots, like 1.2.43
+# followed by an optional build number separated by a +.
+# Both the version and the builder number may be overridden in flutter
+# build by specifying --build-name and --build-number, respectively.
+# In Android, build-name is used as versionName while build-number used as versionCode.
+# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
+# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
+# Read more about iOS versioning at
+# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+# In Windows, build-name is used as the major, minor, and patch parts
+# of the product and file versions while build-number is used as the build suffix.
+version: 1.0.0+1
+
+environment:
+  # 对齐 betto_pdfium 0.1.0 的 SDK 要求（其 0.1.0-dev.4 起强制 Dart >=3.13.0）。
+  # Flutter 3.16+ 自带 Dart 3.13+，若你的 Flutter 较旧请先 flutter upgrade。
+  sdk: ^3.13.0
+
+# Dependencies specify other packages that your package needs in order to work.
+# To automatically upgrade your package dependencies to the latest versions
+# consider running `flutter pub upgrade --major-versions`. Alternatively,
+# dependencies can be manually updated by changing the version numbers below to
+# the latest version available on pub.dev. To see which dependencies have newer
+# versions available, run `flutter pub outdated`.
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # The following adds the Cupertino Icons font to your application.
+  # Use with the CupertinoIcons class for iOS style icons.
+  cupertino_icons: ^1.0.8
+
+  # LLM 与 RAG 编排
+  langchain: ^0.9.0               # TextSplitter、Retriever 抽象、Agent 框架
+  # ⚠️ 版本号不同步！langchain 0.9.0 changelog 明确：
+  #    "Breaking: Updated to the block-native langchain_core 0.5.0"
+  #    所以 langchain_core 最新是 0.5.0，不是 0.9.0。写成 ^0.9.0 会导致 pub get 失败。
+  langchain_core: ^0.5.0          # ChatMessage / PromptValue / Document 等核心类型
+  langchain_openai: ^0.9.0        # ChatOpenAI（调 DeepSeek，OpenAI 兼容 + function calling）
+
+  # 本地 Embedding（RAG 知识库）
+  ai_core_codespark: ^0.2.0       # 量化 MiniLM ONNX，纯 Dart 离线，Windows 支持
+
+  # 文件解析（知识库支持多种格式）
+  # Windows 端 PDF 方案：betto_pdfium 是纯 Dart FFI 封装 PDFium，
+  # Windows x86_64 原生支持，pdfium.dll 由 native-assets hook 自动下载，
+  # 无需手动 ship dll，无需 native toolchain。API：PdfDocument.fromBytes → extractPlainText() 流。
+  betto_pdfium: ^0.1.0            # PDF 文本提取（Windows/macOS/Linux 全平台）
+  excel: ^4.0.6                   # XLSX 解析
+  csv: ^8.0.0                     # CSV 解析
+  # ⚠️ 必须用 3.x！excel 4.x 依赖 archive ^3.6.1，
+  #    archive 4.0.0 是不兼容的大版本升级，会导致 pub get 版本冲突。
+  #    ZipDecoder/ArchiveFile API 在 3.x 与 4.x 一致，DOCX 解析不受影响。
+  archive: ^3.6.1                 # DOCX = zip+xml，用 archive 解压
+  xml: ^6.5.0                     # 解析 DOCX 的 word/document.xml
+
+  # 存储
+  flutter_secure_storage: ^11.0.0 # API Key 加密（Windows 用 DPAPI）
+  shared_preferences: ^2.3.0      # 模型选择等非敏感配置
+  path_provider: ^2.1.4           # 知识库文档/向量索引本地存储路径
+
+  # UI
+  flutter_markdown: ^0.7.6+2      # AI 回复 Markdown 渲染
+  # ⚠️ 必须 ^13.1.0！file_picker 8.x 依赖 win32 ^5.x，
+  #    与 flutter_secure_storage 11.x 依赖的 win32 ^6.x 主版本冲突。
+  #    file_picker 13.x 已切换到 win32 6.x，pickFiles API 8.x→13.x 保持兼容。
+  file_picker: ^13.1.0            # 知识库上传文件选择
+
+  # 通用
+  uuid: ^4.5.1                    # 消息/Skill/文档 ID
+  provider: ^6.1.2                # ChangeNotifier 状态管理
+  http: ^1.2.0                    # Skill Webhook 调用
+  # path 是 Flutter SDK 的传递依赖，但 knowledge_indexer.dart 显式 import
+  # 了 package:path/path.dart 做 basename，按 pub 规范需要在 pubspec 显式声明。
+  path: ^1.9.0                    # 文件路径 basename 处理
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # The "flutter_lints" package below contains a set of recommended lints to
+  # encourage good coding practices. The lint set provided by the package is
+  # activated in the `analysis_options.yaml` file located at the root of your
+  # package. See that file for information about deactivating specific lint
+  # rules and activating additional ones.
+  flutter_lints: ^6.0.0
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter packages.
+flutter:
+
+  # The following line ensures that the Material Icons font is
+  # included with your application, so that you can use the icons in
+  # the material Icons class.
+  uses-material-design: true
+
+  # To add assets to your application, add an assets section, like this:
+  # assets:
+  #   - images/a_dot_burr.jpeg
+  #   - images/a_dot_ham.jpeg
+
+  # An image asset can refer to one or more resolution-specific "variants", see
+  # https://flutter.dev/to/resolution-aware-images
+
+  # For details regarding adding assets from package dependencies, see
+  # https://flutter.dev/to/asset-from-package
+
+  # To add custom fonts to your application, add a fonts section here,
+  # in this "flutter" section. Each entry in this list should have a
+  # "family" key with the font family name, and a "fonts" key with a
+  # list giving the asset and other descriptors for the font. For
+  # example:
+  # fonts:
+  #   - family: Schyler
+  #     fonts:
+  #       - asset: fonts/Schyler-Regular.ttf
+  #       - asset: fonts/Schyler-Italic.ttf
+  #         style: italic
+  #   - family: Trajan Pro
+  #     fonts:
+  #       - asset: fonts/TrajanPro.ttf
+  #       - asset: fonts/TrajanPro_Bold.ttf
+  #         weight: 700
+  #
+  # For details regarding fonts from package dependencies,
+  # see https://flutter.dev/to/font-from-package
