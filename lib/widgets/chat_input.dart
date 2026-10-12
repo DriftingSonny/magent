@@ -1,10 +1,36 @@
 import 'package:flutter/material.dart';
 
-/// 输入框 + 发送按钮。Enter 发送，Shift+Enter 换行。流式时禁用。
+/// 输入框 + 发送/停止按钮。
+///
+/// - Enter 发送，Shift+Enter 换行。
+/// - 流式输出时输入框禁用，按钮变为"停止"（暂停并保留已产出内容）。
+/// - [prefillText] 用于"回退"后把原用户消息回填，方便修改重发。
 class ChatInput extends StatefulWidget {
   final bool disabled;
+
+  /// 是否正在流式输出。为 true 时发送按钮切换为停止按钮。
+  final bool isStreaming;
+
+  /// 需要回填到输入框的文本（回退操作触发）。
+  final String? prefillText;
+
+  /// 回填完成后的回调，用于清除 provider 中的待回填状态。
+  final VoidCallback? onPrefillConsumed;
+
   final ValueChanged<String> onSend;
-  const ChatInput({super.key, required this.disabled, required this.onSend});
+
+  /// 点击停止按钮时调用。
+  final VoidCallback? onStop;
+
+  const ChatInput({
+    super.key,
+    required this.disabled,
+    required this.isStreaming,
+    required this.onSend,
+    this.prefillText,
+    this.onPrefillConsumed,
+    this.onStop,
+  });
 
   @override
   State<ChatInput> createState() => _ChatInputState();
@@ -13,6 +39,19 @@ class ChatInput extends StatefulWidget {
 class _ChatInputState extends State<ChatInput> {
   final _ctrl = TextEditingController();
   final _focus = FocusNode();
+
+  @override
+  void didUpdateWidget(covariant ChatInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final text = widget.prefillText;
+    // 新的回填请求：写入控制器并把光标放到末尾。
+    if (text != null && text != oldWidget.prefillText) {
+      _ctrl.text = text;
+      _ctrl.selection = TextSelection.collapsed(offset: text.length);
+      _focus.requestFocus();
+      widget.onPrefillConsumed?.call();
+    }
+  }
 
   @override
   void dispose() {
@@ -54,26 +93,24 @@ class _ChatInputState extends State<ChatInput> {
             ),
           ),
           const SizedBox(width: 8),
-          IconButton.filled(
-            onPressed: widget.disabled ? null : _send,
-            icon: widget.disabled
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.send),
-            style: IconButton.styleFrom(
-              backgroundColor: theme.colorScheme.primary,
-              foregroundColor: theme.colorScheme.onPrimary,
+          // 流式中：显示"停止"按钮，点击暂停生成。
+          if (widget.isStreaming)
+            IconButton.filledTonal(
+              onPressed: widget.onStop,
+              tooltip: '停止生成',
+              icon: const Icon(Icons.stop),
+            )
+          else
+            IconButton.filled(
+              onPressed: widget.disabled ? null : _send,
+              icon: const Icon(Icons.send),
+              style: IconButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
+              ),
             ),
-          ),
         ],
       ),
     );
   }
 }
-
-// 桌面端 Enter 发送 / Shift+Enter 换行的快捷键，
-// 通过 KeyboardListener 或 Shortcuts 实现。这里简化处理：
-// TextField 默认 Enter 就是 submit，Shift+Enter 自然换行（multiline 模式下）。

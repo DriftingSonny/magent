@@ -3,6 +3,9 @@ import 'package:flutter/foundation.dart';
 /// 应用层消息角色。
 enum ChatRole { user, assistant, toolCall, toolResult, error }
 
+/// 消息操作菜单项。
+enum MessageAction { copy, rollback, delete }
+
 /// 应用层消息数据类。
 ///
 /// 与 langchain 的 [ChatMessage] 区分开，避免直接耦合序列化逻辑。
@@ -46,6 +49,32 @@ class ChatMessageModel {
         timestamp: timestamp ?? this.timestamp,
         streaming: streaming ?? this.streaming,
       );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'role': role.name,
+        'content': content,
+        'timestamp': timestamp.toIso8601String(),
+        if (toolCallInfo != null) 'toolCallInfo': toolCallInfo!.toJson(),
+      };
+
+  factory ChatMessageModel.fromJson(Map<String, dynamic> json) {
+    return ChatMessageModel(
+      id: json['id'] as String,
+      role: ChatRole.values.byName(json['role'] as String),
+      content: json['content'] as String? ?? '',
+      timestamp:
+          DateTime.tryParse(json['timestamp'] as String? ?? '') ??
+              DateTime.now(),
+      toolCallInfo: json['toolCallInfo'] == null
+          ? null
+          : ToolCallInfo.fromJson(
+              Map<String, dynamic>.from(json['toolCallInfo'] as Map),
+            ),
+      // 持久化恢复时一律视为非流式（重启后不应残留"正在输入"状态）。
+      streaming: false,
+    );
+  }
 }
 
 /// 工具调用过程信息：状态、参数、结果。
@@ -81,6 +110,24 @@ class ToolCallInfo {
         arguments: arguments ?? this.arguments,
         status: status ?? this.status,
         result: result ?? this.result,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'skillName': skillName,
+        'arguments': arguments,
+        'status': status.name,
+        if (result != null) 'result': result,
+      };
+
+  factory ToolCallInfo.fromJson(Map<String, dynamic> json) => ToolCallInfo(
+        skillName: json['skillName'] as String? ?? '',
+        arguments: Map<String, dynamic>.from(
+          json['arguments'] as Map? ?? const {},
+        ),
+        status: ToolCallStatus.values.byName(
+          json['status'] as String? ?? ToolCallStatus.failed.name,
+        ),
+        result: json['result'] as String?,
       );
 }
 

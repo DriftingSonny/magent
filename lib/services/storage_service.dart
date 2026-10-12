@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/constants.dart';
+import '../models/conversation.dart';
 import '../models/skill.dart';
 import '../models/knowledge_doc.dart';
 
@@ -43,7 +44,8 @@ class StorageService {
 
   // ---- 模型选择 ----
 
-  String getModel() => _p.getString(AppConstants.keyModel) ?? AppConstants.defaultModel;
+  String getModel() =>
+      _p.getString(AppConstants.keyModel) ?? AppConstants.defaultModel;
 
   Future<void> setModel(String value) =>
       _p.setString(AppConstants.keyModel, value);
@@ -86,4 +88,30 @@ class StorageService {
     final raw = jsonEncode(docs.map((d) => d.toJson()).toList());
     await _p.setString(AppConstants.keyKnowledgeDocs, raw);
   }
+
+  // ---- 多会话 ----
+
+  /// 读取全部会话（按 updatedAt 倒序，最近使用的在前）。
+  List<Conversation> getConversations() {
+    final raw = _p.getString(AppConstants.keyConversations);
+    if (raw == null) return [];
+    final list = jsonDecode(raw) as List;
+    final result = list
+        .map((e) => Conversation.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
+    result.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return result;
+  }
+
+  Future<void> setConversations(List<Conversation> conversations) async {
+    final raw = jsonEncode(conversations.map((c) => c.toJson()).toList());
+    await _p.setString(AppConstants.keyConversations, raw);
+  }
+
+  /// 当前选中的会话 id（无则返回 null）。
+  String? getCurrentConversationId() =>
+      _p.getString(AppConstants.keyCurrentConversationId);
+
+  Future<void> setCurrentConversationId(String id) =>
+      _p.setString(AppConstants.keyCurrentConversationId, id);
 }

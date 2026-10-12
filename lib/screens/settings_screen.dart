@@ -45,6 +45,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         await StorageService().deleteApiKey();
       } else {
         await StorageService().setApiKey(key);
+        // 回读校验：某些环境（如受限沙箱/权限拦截）写盘会静默失败，
+        // 若不校验会出现"看着保存成功、重启却要求重新输入 Key"。
+        final saved = await StorageService().getApiKey();
+        if (saved != key) {
+          throw StateError('API Key 未成功写入本地存储（可能被系统权限拦截）');
+        }
       }
       await StorageService().setModel(_model);
       await StorageService().setRagEnabled(_ragEnabled);

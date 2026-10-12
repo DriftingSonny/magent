@@ -43,4 +43,8 @@ class AppConstants {
   static const String keyRagEnabled = 'rag_enabled';
   static const String keySkills = 'skills_json';
   static const String keyKnowledgeDocs = 'knowledge_docs_json';
+
+  /// 多会话：全部会话列表 + 当前选中的会话 id。
+  static const String keyConversations = 'conversations_json';
+  static const String keyCurrentConversationId = 'current_conversation_id';
 }
